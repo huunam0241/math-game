@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Whiz Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Basic Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #f0f9ff; /* Light blue background */
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden; /* Prevent horizontal scroll on small screens */
+        }
+
+        .container {
+            background-color: #ffffff; /* White container background */
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 100%;
+            max-width: 450px; /* Max width for larger screens */
+        }
+
+        h1, h2 {
+            color: #2a7de1; /* Blue title */
+            margin-bottom: 25px;
+        }
+        h1 { font-size: 2.5em; }
+        h2 { font-size: 2em; }
+
+
+        /* Start Screen Styles */
+        #start-container label {
+            display: block;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+        #start-container input[type="text"] {
+            padding: 12px;
+            font-size: 1.1em;
+            border: 2px solid #bde0fe;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            width: calc(100% - 28px); /* Full width minus padding and border */
+            text-align: center;
+        }
+
+        /* Game Screen Styles */
+        .score-board, .timer-display {
+            font-size: 1.5em;
+            color: #555;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        .score-board span, .timer-display span {
+            color: #2a7de1; /* Blue score/time number */
+        }
+        .timer-display {
+            margin-bottom: 20px;
+        }
+
+        .question-area {
+            font-size: 2.8em; /* Larger font for question */
+            color: #333;
+            margin-bottom: 25px;
+            padding: 15px;
+            background-color: #e9f5ff; /* Lighter blue for question background */
+            border-radius: 10px;
+            min-height: 70px; /* Ensure consistent height */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .answer-area {
+            margin-bottom: 25px;
+            display: flex;
+            flex-direction: column; /* Stack input and button on small screens */
+            align-items: center;
+            gap: 15px; /* Space between input and button */
+        }
+
+        .answer-area input[type="number"] {
+            padding: 15px;
+            font-size: 1.5em;
+            border: 2px solid #bde0fe; /* Light blue border */
+            border-radius: 10px;
+            text-align: center;
+            width: 100px; /* Fixed width for number input */
+            max-width: 100%; /* Ensure it doesn't overflow container */
+            appearance: textfield;
+            -moz-appearance: textfield;
+        }
+        .answer-area input[type="number"]::-webkit-outer-spin-button,
+        .answer-area input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .answer-area input[type="number"]:focus::placeholder { color: #ccc; opacity: 0.7; }
+        .answer-area input[type="number"]::placeholder { color: #aaa; }
+
+        .btn {
+            padding: 15px 25px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            min-width: 180px;
+        }
+
+        .start-btn, .submit-btn, .play-again-btn {
+            background-color: #4CAF50; /* Green */
+        }
+        .start-btn:hover, .submit-btn:hover, .play-again-btn:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+        }
+        .start-btn:active, .submit-btn:active, .play-again-btn:active {
+            transform: translateY(0);
+        }
+
+        .next-btn {
+            background-color: #2a7de1; /* Blue */
+        }
+        .next-btn:hover {
+            background-color: #256dc4;
+            transform: translateY(-2px);
+        }
+        .next-btn:active {
+            transform: translateY(0);
+        }
+        .next-btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .feedback-message {
+            font-size: 1.3em;
+            margin-top: 20px;
+            min-height: 30px;
+            font-weight: bold;
+        }
+        .feedback-message.correct { color: #4CAF50; }
+        .feedback-message.incorrect { color: #f44336; }
+
+        /* Results Screen Styles */
+        #results-container ul {
+            list-style-type: none;
+            padding: 0;
+            font-size: 1.2em;
+            margin-bottom: 25px;
+        }
+        #results-container ul li {
+            margin-bottom: 10px;
+            background-color: #e9f5ff;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        #results-container ul li strong {
+            color: #2a7de1;
+        }
+
+
+        /* Utility class to hide elements */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 480px) {
+            .container { padding: 20px; }
+            h1 { font-size: 2em; }
+            h2 { font-size: 1.8em; }
+            .question-area { font-size: 2.2em; }
+            .answer-area input[type="number"] { font-size: 1.3em; padding: 12px; }
+            .btn { font-size: 1em; padding: 12px 20px; min-width: 150px; }
+            .feedback-message { font-size: 1.1em; }
+            #results-container ul { font-size: 1.1em; }
+        }
+    </style>
+</head>
+<body>
+    <div id="start-container" class="container">
+        <h1>Math Whiz!</h1>
+        <label for="player-name">Enter Your Name:</label>
+        <input type="text" id="player-name" placeholder="Superstar">
+        <button class="btn start-btn" id="start-game-btn">Start Game</button>
+    </div>
+
+    <div id="game-container" class="container hidden">
+        <div class="timer-display">Time Left: <span id="time-left">01:30</span></div> 
+        <div class="score-board">Score: <span id="score">0</span></div>
+        <div class="question-area" id="question"></div>
+        <div class="answer-area">
+            <input type="number" id="answer-input" placeholder="?" aria-label="Your answer">
+            <button class="btn submit-btn" id="submit-btn">Submit</button>
+        </div>
+        <button class="btn next-btn" id="next-btn" style="display: none;">Next Question</button>
+        <div class="feedback-message" id="feedback"></div>
+    </div>
+
+    <div id="results-container" class="container hidden">
+        <h2>Game Over!</h2>
+        <ul id="results-summary">
+            </ul>
+        <button class="btn play-again-btn" id="play-again-btn">Play Again</button>
+    </div>
+
+    <script>
+        // DOM Elements
+        const startContainerEl = document.getElementById('start-container');
+        const playerNameInputEl = document.getElementById('player-name');
+        const startGameBtn = document.getElementById('start-game-btn');
+
+        const gameContainerEl = document.getElementById('game-container');
+        const timeLeftEl = document.getElementById('time-left');
+        const scoreEl = document.getElementById('score');
+        const questionEl = document.getElementById('question');
+        const answerInputEl = document.getElementById('answer-input');
+        const submitBtn = document.getElementById('submit-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const feedbackEl = document.getElementById('feedback');
+
+        const resultsContainerEl = document.getElementById('results-container');
+        const resultsSummaryEl = document.getElementById('results-summary');
+        const playAgainBtn = document.getElementById('play-again-btn');
+
+        // Game state
+        let playerName = "Player";
+        let currentCorrectAnswer = 0;
+        let score = 0; // Correct answers
+        let totalQuestionsAttempted = 0;
+        const operations = ['+', '-', '×', '÷'];
+        const MAX_OPERAND = 10;
+        // MODIFIED: Game duration changed to 1.5 minutes (90 seconds)
+        const GAME_DURATION_SECONDS = 1.5 * 60; 
+        let timeLeft = GAME_DURATION_SECONDS;
+        let timerInterval = null;
+
+        /**
+         * Generates a random integer between min and max (inclusive).
+         */
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        /**
+         * Formats seconds into MM:SS string.
+         */
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
+
+        /**
+         * Updates the timer display.
+         */
+        function updateTimerDisplay() {
+            timeLeftEl.textContent = formatTime(timeLeft);
+        }
+
+        /**
+         * Starts the game timer.
+         */
+        function startTimer() {
+            timeLeft = GAME_DURATION_SECONDS;
+            updateTimerDisplay(); // Initialize display correctly
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        /**
+         * Generates and displays a new math question.
+         */
+        function generateQuestion() {
+            if (timeLeft <= 0) return; // Don't generate if time is up
+
+            const operation = operations[getRandomInt(0, operations.length - 1)];
+            let num1, num2, questionText;
+
+            answerInputEl.value = '';
+            feedbackEl.textContent = '';
+            feedbackEl.className = 'feedback-message';
+            answerInputEl.disabled = false;
+            submitBtn.style.display = 'inline-block';
+            nextBtn.style.display = 'none';
+            submitBtn.disabled = false;
+
+            switch (operation) {
+                case '+':
+                    num1 = getRandomInt(1, MAX_OPERAND);
+                    num2 = getRandomInt(1, MAX_OPERAND);
+                    currentCorrectAnswer = num1 + num2;
+                    questionText = `${num1} + ${num2}`;
+                    break;
+                case '-':
+                    let term1_sub = getRandomInt(1, MAX_OPERAND);
+                    let term2_sub = getRandomInt(1, MAX_OPERAND);
+                    num1 = term1_sub + term2_sub;
+                    num2 = term1_sub;
+                    currentCorrectAnswer = num1 - num2;
+                    questionText = `${num1} - ${num2}`;
+                    break;
+                case '×':
+                    num1 = getRandomInt(1, MAX_OPERAND);
+                    num2 = getRandomInt(1, MAX_OPERAND);
+                    currentCorrectAnswer = num1 * num2;
+                    questionText = `${num1} × ${num2}`;
+                    break;
+                case '÷':
+                    let factor1_div = getRandomInt(1, MAX_OPERAND);
+                    let factor2_div = getRandomInt(1, MAX_OPERAND);
+                    num1 = factor1_div * factor2_div;
+                    num2 = factor1_div;
+                    if (num2 === 0) num2 = 1; // Should not happen with MAX_OPERAND >= 1
+                    currentCorrectAnswer = num1 / num2;
+                    questionText = `${num1} ÷ ${num2}`;
+                    break;
+                default: // Fallback
+                    num1 = getRandomInt(1, MAX_OPERAND);
+                    num2 = getRandomInt(1, MAX_OPERAND);
+                    currentCorrectAnswer = num1 + num2;
+                    questionText = `${num1} + ${num2}`;
+            }
+            questionEl.textContent = questionText;
+            answerInputEl.focus();
+        }
+
+        /**
+         * Checks the user's answer.
+         */
+        function checkAnswer() {
+            if (timeLeft <= 0) return; // Don't check if time is up
+
+            const userAnswer = parseInt(answerInputEl.value);
+            totalQuestionsAttempted++;
+
+            if (isNaN(userAnswer)) {
+                feedbackEl.textContent = "Please enter a number!";
+                feedbackEl.className = 'feedback-message incorrect';
+            } else if (userAnswer === currentCorrectAnswer) {
+                feedbackEl.textContent = "Correct! 🎉";
+                feedbackEl.className = 'feedback-message correct';
+                score++;
+                scoreEl.textContent = score;
+            } else {
+                feedbackEl.textContent = `Oops! The answer was ${currentCorrectAnswer}.`;
+                feedbackEl.className = 'feedback-message incorrect';
+            }
+
+            answerInputEl.disabled = true;
+            submitBtn.style.display = 'none';
+            submitBtn.disabled = true;
+            nextBtn.style.display = 'inline-block';
+            nextBtn.focus();
+        }
+
+        /**
+         * Ends the current game session and displays results.
+         */
+        function endGame() {
+            clearInterval(timerInterval);
+            timeLeft = 0; // Ensure timer shows 00:00
+            updateTimerDisplay();
+
+            gameContainerEl.classList.add('hidden');
+            resultsContainerEl.classList.remove('hidden');
+
+            const incorrectAnswers = totalQuestionsAttempted - score;
+            const correctPercentage = totalQuestionsAttempted > 0 ? ((score / totalQuestionsAttempted) * 100).toFixed(1) : 0;
+            const incorrectPercentage = totalQuestionsAttempted > 0 ? ((incorrectAnswers / totalQuestionsAttempted) * 100).toFixed(1) : 0;
+
+            resultsSummaryEl.innerHTML = `
+                <li>Player: <strong>${playerName}</strong></li>
+                <li>Total Questions Answered: <strong>${totalQuestionsAttempted}</strong></li>
+                <li>Correct Answers: <strong>${score} (${correctPercentage}%)</strong></li>
+                <li>Incorrect Answers: <strong>${incorrectAnswers} (${incorrectPercentage}%)</strong></li>
+            `;
+        }
+
+        /**
+         * Initializes the game, asking for player name.
+         */
+        function initializeGame() {
+            startContainerEl.classList.remove('hidden');
+            gameContainerEl.classList.add('hidden');
+            resultsContainerEl.classList.add('hidden');
+            
+            // Update initial timer display for new games using the constant
+            timeLeftEl.textContent = formatTime(GAME_DURATION_SECONDS);
+
+
+            playerNameInputEl.value = ''; // Clear name input for new game
+            playerNameInputEl.focus();
+        }
+
+        /**
+         * Starts a new game session.
+         */
+        function startGame() {
+            const name = playerNameInputEl.value.trim();
+            if (name) {
+                playerName = name;
+            } else {
+                playerName = "Superstar"; // Default name if none entered
+            }
+
+            startContainerEl.classList.add('hidden');
+            gameContainerEl.classList.remove('hidden');
+            resultsContainerEl.classList.add('hidden');
+
+            score = 0;
+            totalQuestionsAttempted = 0;
+            scoreEl.textContent = score;
+            feedbackEl.textContent = '';
+            feedbackEl.className = 'feedback-message';
+
+            startTimer();
+            generateQuestion();
+        }
+
+        // Event Listeners
+        startGameBtn.addEventListener('click', startGame);
+        playerNameInputEl.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                startGameBtn.click(); 
+            }
+        });
+
+        submitBtn.addEventListener('click', checkAnswer);
+        answerInputEl.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter' && !submitBtn.disabled) {
+                checkAnswer();
+            }
+        });
+
+        nextBtn.addEventListener('click', generateQuestion);
+        playAgainBtn.addEventListener('click', initializeGame);
+
+        // Initial setup
+        window.onload = () => {
+            initializeGame();
+        };
+    </script>
+</body>
+</html>
