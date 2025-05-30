@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Math Whiz Game</title>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
         /* Basic Reset */
         * {
@@ -207,7 +208,7 @@
     </div>
 
     <div id="game-container" class="container hidden">
-        <div class="timer-display">Time Left: <span id="time-left">01:30</span></div> 
+        <div class="timer-display">Time Left: <span id="time-left">02:00</span></div> 
         <div class="score-board">Score: <span id="score">0</span></div>
         <div class="question-area" id="question"></div>
         <div class="answer-area">
@@ -251,10 +252,89 @@
         let totalQuestionsAttempted = 0;
         const operations = ['+', '-', '×', '÷'];
         const MAX_OPERAND = 10;
-        // MODIFIED: Game duration changed to 1.5 minutes (90 seconds)
-        const GAME_DURATION_SECONDS = 1.5 * 60; 
+        // MODIFIED: Game duration changed to 2 minutes (120 seconds)
+        const GAME_DURATION_SECONDS = 2 * 60; 
         let timeLeft = GAME_DURATION_SECONDS;
         let timerInterval = null;
+        let audioInitialized = false; // Flag to track if Tone.js has been started
+
+        // --- Tone.js Sound Synthesizers ---
+        let correctSound, incorrectSound, clickSound, gameStartSound, gameOverSound;
+
+        /**
+         * Initializes Tone.js synthesizers.
+         * This should be called once, ideally after the first user interaction.
+         */
+        async function initializeAudio() {
+            if (audioInitialized) return; // Prevent multiple initializations
+            try {
+                await Tone.start(); // Start Tone.js audio context (required by browsers)
+                console.log("Audio context started successfully.");
+
+                correctSound = new Tone.Synth({
+                    oscillator: { type: "sine" },
+                    envelope: { attack: 0.01, decay: 0.1, sustain: 0.05, release: 0.2 }
+                }).toDestination();
+
+                incorrectSound = new Tone.Synth({
+                    oscillator: { type: "square" },
+                    envelope: { attack: 0.01, decay: 0.2, sustain: 0, release: 0.2 }
+                }).toDestination();
+                
+                clickSound = new Tone.MembraneSynth({ // Good for clicky sounds
+                    pitchDecay: 0.01,
+                    octaves: 2,
+                    oscillator: { type: "sine" },
+                    envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 }
+                }).toDestination();
+
+                gameStartSound = new Tone.Synth({
+                    oscillator: { type: "triangle" },
+                    envelope: { attack: 0.05, decay: 0.2, sustain: 0.1, release: 0.3 }
+                }).toDestination();
+
+                gameOverSound = new Tone.Synth({
+                    oscillator: { type: "sawtooth" },
+                    envelope: { attack: 0.1, decay: 0.3, sustain: 0.1, release: 0.5 }
+                }).toDestination();
+
+                audioInitialized = true;
+            } catch (e) {
+                console.error("Error starting Tone.js audio context:", e);
+                // Fallback or notify user that audio couldn't be started
+            }
+        }
+        
+        // --- Sound Playing Functions ---
+        function playCorrectSound() {
+            if (!audioInitialized || !correctSound) return;
+            correctSound.triggerAttackRelease("C5", "8n", Tone.now()); // A higher, pleasant note
+            correctSound.triggerAttackRelease("E5", "8n", Tone.now() + 0.1);
+            correctSound.triggerAttackRelease("G5", "8n", Tone.now() + 0.2);
+        }
+
+        function playIncorrectSound() {
+            if (!audioInitialized || !incorrectSound) return;
+            incorrectSound.triggerAttackRelease("C3", "4n", Tone.now()); // A lower, somewhat dissonant note
+        }
+
+        function playClickSound() {
+            if (!audioInitialized || !clickSound) return;
+            clickSound.triggerAttackRelease("C4", "16n", Tone.now()); // Short click
+        }
+
+        function playGameStartSound() {
+            if (!audioInitialized || !gameStartSound) return;
+            gameStartSound.triggerAttackRelease("C4", "8n", Tone.now());
+            gameStartSound.triggerAttackRelease("G4", "8n", Tone.now() + 0.15);
+        }
+        
+        function playGameOverSound() {
+            if (!audioInitialized || !gameOverSound) return;
+            gameOverSound.triggerAttackRelease("G3", "4n", Tone.now());
+            gameOverSound.triggerAttackRelease("C3", "4n", Tone.now() + 0.3);
+        }
+
 
         /**
          * Generates a random integer between min and max (inclusive).
@@ -298,7 +378,7 @@
          * Generates and displays a new math question.
          */
         function generateQuestion() {
-            if (timeLeft <= 0) return; // Don't generate if time is up
+            if (timeLeft <= 0) return; 
 
             const operation = operations[getRandomInt(0, operations.length - 1)];
             let num1, num2, questionText;
@@ -337,11 +417,11 @@
                     let factor2_div = getRandomInt(1, MAX_OPERAND);
                     num1 = factor1_div * factor2_div;
                     num2 = factor1_div;
-                    if (num2 === 0) num2 = 1; // Should not happen with MAX_OPERAND >= 1
+                    if (num2 === 0) num2 = 1; 
                     currentCorrectAnswer = num1 / num2;
                     questionText = `${num1} ÷ ${num2}`;
                     break;
-                default: // Fallback
+                default: 
                     num1 = getRandomInt(1, MAX_OPERAND);
                     num2 = getRandomInt(1, MAX_OPERAND);
                     currentCorrectAnswer = num1 + num2;
@@ -355,7 +435,7 @@
          * Checks the user's answer.
          */
         function checkAnswer() {
-            if (timeLeft <= 0) return; // Don't check if time is up
+            if (timeLeft <= 0) return; 
 
             const userAnswer = parseInt(answerInputEl.value);
             totalQuestionsAttempted++;
@@ -363,14 +443,17 @@
             if (isNaN(userAnswer)) {
                 feedbackEl.textContent = "Please enter a number!";
                 feedbackEl.className = 'feedback-message incorrect';
+                playIncorrectSound(); 
             } else if (userAnswer === currentCorrectAnswer) {
                 feedbackEl.textContent = "Correct! 🎉";
                 feedbackEl.className = 'feedback-message correct';
                 score++;
                 scoreEl.textContent = score;
+                playCorrectSound();
             } else {
                 feedbackEl.textContent = `Oops! The answer was ${currentCorrectAnswer}.`;
                 feedbackEl.className = 'feedback-message incorrect';
+                playIncorrectSound();
             }
 
             answerInputEl.disabled = true;
@@ -385,8 +468,9 @@
          */
         function endGame() {
             clearInterval(timerInterval);
-            timeLeft = 0; // Ensure timer shows 00:00
+            timeLeft = 0; 
             updateTimerDisplay();
+            playGameOverSound();
 
             gameContainerEl.classList.add('hidden');
             resultsContainerEl.classList.remove('hidden');
@@ -411,23 +495,26 @@
             gameContainerEl.classList.add('hidden');
             resultsContainerEl.classList.add('hidden');
             
-            // Update initial timer display for new games using the constant
             timeLeftEl.textContent = formatTime(GAME_DURATION_SECONDS);
-
-
-            playerNameInputEl.value = ''; // Clear name input for new game
+            playerNameInputEl.value = ''; 
             playerNameInputEl.focus();
         }
 
         /**
          * Starts a new game session.
          */
-        function startGame() {
+        async function startGame() { // Made async to await initializeAudio
+            // Initialize audio on the first user gesture (start game button click)
+            if (!audioInitialized) {
+                await initializeAudio();
+            }
+            playGameStartSound();
+
             const name = playerNameInputEl.value.trim();
             if (name) {
                 playerName = name;
             } else {
-                playerName = "Superstar"; // Default name if none entered
+                playerName = "Superstar"; 
             }
 
             startContainerEl.classList.add('hidden');
@@ -445,22 +532,34 @@
         }
 
         // Event Listeners
-        startGameBtn.addEventListener('click', startGame);
+        startGameBtn.addEventListener('click', () => {
+            playClickSound();
+            startGame(); // Call the (now potentially async) startGame function
+        });
         playerNameInputEl.addEventListener('keypress', function(event) {
             if (event.key === 'Enter') {
                 startGameBtn.click(); 
             }
         });
 
-        submitBtn.addEventListener('click', checkAnswer);
+        submitBtn.addEventListener('click', () => {
+            playClickSound();
+            checkAnswer();
+        });
         answerInputEl.addEventListener('keypress', function(event) {
             if (event.key === 'Enter' && !submitBtn.disabled) {
-                checkAnswer();
+                submitBtn.click(); // Simulate click to trigger sound and checkAnswer
             }
         });
 
-        nextBtn.addEventListener('click', generateQuestion);
-        playAgainBtn.addEventListener('click', initializeGame);
+        nextBtn.addEventListener('click', () => {
+            playClickSound();
+            generateQuestion();
+        });
+        playAgainBtn.addEventListener('click', () => {
+            playClickSound();
+            initializeGame();
+        });
 
         // Initial setup
         window.onload = () => {
